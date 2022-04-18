@@ -257,13 +257,14 @@ impl Painter {
 
         if let Some(pos) = delta.pos {
             // update a sub-region
-            if let Some((gl_texture, filter)) = self.textures.get(&tex_id) {
+            if let Some((gl_texture, filter)) = self.textures.get_mut(&tex_id) {
                 let rect = glium::Rect {
                     left: pos[0] as _,
                     bottom: pos[1] as _,
                     width: glium_image.width,
                     height: glium_image.height,
                 };
+                *filter = delta.filter;
                 gl_texture.main_level().write(rect, glium_image);
             }
         } else {
