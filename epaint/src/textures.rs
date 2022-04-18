@@ -27,7 +27,7 @@ impl TextureManager {
     /// MUST have a white pixel at (0,0) ([`crate::WHITE_UV`]).
     ///
     /// The texture is given a retain-count of `1`, requiring one call to [`Self::free`] to free it.
-    pub fn alloc(&mut self, name: String, image: ImageData) -> TextureId {
+    pub fn alloc(&mut self, name: String, image: ImageData, filter: TextureFilter) -> TextureId {
         let id = TextureId::Managed(self.next_id);
         self.next_id += 1;
 
@@ -38,7 +38,7 @@ impl TextureManager {
             retain_count: 1,
         });
 
-        self.delta.set.insert(id, ImageDelta::full(image));
+        self.delta.set.insert(id, ImageDelta::full(image, filter));
         id
     }
 
@@ -137,6 +137,21 @@ impl TextureMeta {
     /// width x height x [`Self::bytes_per_pixel`].
     pub fn bytes_used(&self) -> usize {
         self.size[0] * self.size[1] * self.bytes_per_pixel
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+
+pub enum TextureFilter {
+    Linear,
+    Nearest,
+}
+impl Default for TextureFilter {
+    fn default() -> Self {
+        TextureFilter::Linear
     }
 }
 

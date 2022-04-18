@@ -14,6 +14,9 @@ pub struct MiscDemoWindow {
 
     widgets: Widgets,
     colors: ColorWidgets,
+
+    #[cfg_attr(feature = "serde", serde(skip))]
+    images: ImageDemos,
     tree: Tree,
     box_painting: BoxPainting,
 
@@ -32,6 +35,7 @@ impl Default for MiscDemoWindow {
 
             widgets: Default::default(),
             colors: Default::default(),
+            images: Default::default(),
             tree: Tree::demo(),
             box_painting: Default::default(),
 
@@ -80,6 +84,12 @@ impl View for MiscDemoWindow {
             .default_open(false)
             .show(ui, |ui| {
                 self.colors.ui(ui);
+            });
+
+        CollapsingHeader::new("Images")
+            .default_open(false)
+            .show(ui, |ui| {
+                self.images.ui(ui);
             });
 
         CollapsingHeader::new("Tree")
@@ -301,6 +311,70 @@ impl ColorWidgets {
                 "Linear RGBA with premultiplied alpha: {:.02} {:.02} {:.02} {:.02}",
                 rgba_premul[0], rgba_premul[1], rgba_premul[2], rgba_premul[3],
             ));
+        });
+    }
+}
+
+// ----------------------------------------------------------------------------
+
+#[derive(PartialEq)]
+struct ImageDemos {
+    linear: Option<TextureHandle>,
+    nearest: Option<TextureHandle>,
+}
+
+impl Default for ImageDemos {
+    fn default() -> Self {
+        Self {
+            linear: Default::default(),
+            nearest: Default::default(),
+        }
+    }
+}
+
+impl ImageDemos {
+    fn ui(&mut self, ui: &mut Ui) {
+        fn generate_image() -> ColorImage {
+            let mut image = ColorImage::new([6, 6], Color32::YELLOW);
+            image.pixels[0] = Color32::BLACK;
+            image.pixels[5] = Color32::BLACK;
+            image.pixels[35] = Color32::BLACK;
+            image.pixels[30] = Color32::BLACK;
+            image.pixels[7] = Color32::BLACK;
+            image.pixels[10] = Color32::BLACK;
+            image.pixels[22] = Color32::BLACK;
+            image.pixels[19] = Color32::BLACK;
+            image.pixels[27] = Color32::BLACK;
+            image.pixels[26] = Color32::BLACK;
+            image
+        }
+
+        let linear = self.linear.get_or_insert_with(|| {
+            ui.ctx().load_filtered_texture(
+                "smily_linear",
+                generate_image(),
+                epaint::textures::TextureFilter::Linear,
+            )
+        });
+
+        let nearest = self.nearest.get_or_insert_with(|| {
+            ui.ctx().load_filtered_texture(
+                "smily_nearest",
+                generate_image(),
+                epaint::textures::TextureFilter::Nearest,
+            )
+        });
+
+        ui.label("egui lets you change the filter used for images from linear(default) to nearest");
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.label("Linear");
+                ui.image(linear.id(), Vec2::new(50.0, 50.0));
+            });
+            ui.vertical(|ui| {
+                ui.label("Nearest");
+                ui.image(nearest.id(), Vec2::new(50.0, 50.0));
+            });
         });
     }
 }

@@ -1,4 +1,4 @@
-use crate::{FontImage, ImageDelta};
+use crate::{textures::TextureFilter, FontImage, ImageDelta};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 struct Rectu {
@@ -33,6 +33,7 @@ impl Rectu {
 #[derive(Clone)]
 pub struct TextureAtlas {
     image: FontImage,
+    filter: TextureFilter,
     /// What part of the image that is dirty
     dirty: Rectu,
 
@@ -53,6 +54,7 @@ impl TextureAtlas {
             cursor: (0, 0),
             row_height: 0,
             overflowed: false,
+            filter: TextureFilter::default(),
         }
     }
 
@@ -80,12 +82,12 @@ impl TextureAtlas {
         if dirty == Rectu::NOTHING {
             None
         } else if dirty == Rectu::EVERYTHING {
-            Some(ImageDelta::full(self.image.clone()))
+            Some(ImageDelta::full(self.image.clone(), self.filter))
         } else {
             let pos = [dirty.min_x, dirty.min_y];
             let size = [dirty.max_x - dirty.min_x, dirty.max_y - dirty.min_y];
             let region = self.image.region(pos, size);
-            Some(ImageDelta::partial(pos, region))
+            Some(ImageDelta::partial(pos, region, self.filter))
         }
     }
 

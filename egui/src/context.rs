@@ -5,7 +5,7 @@ use crate::{
     animation_manager::AnimationManager, data::output::PlatformOutput, frame_state::FrameState,
     input_state::*, layers::GraphicLayers, memory::Options, output::FullOutput, TextureHandle, *,
 };
-use epaint::{mutex::*, stats::*, text::Fonts, TessellationOptions, *};
+use epaint::{mutex::*, stats::*, text::Fonts, textures::TextureFilter, TessellationOptions, *};
 
 // ----------------------------------------------------------------------------
 
@@ -19,6 +19,7 @@ impl Default for WrappedTextureManager {
         let font_id = tex_mngr.alloc(
             "egui_font_texture".into(),
             epaint::FontImage::new([0, 0]).into(),
+            TextureFilter::default(),
         );
         assert_eq!(font_id, TextureId::default());
 
@@ -668,6 +669,55 @@ impl Context {
             max: self.round_pos_to_pixels(rect.max),
         }
     }
+    /// Allocate a texture.
+    ///
+    /// In order to display an image you must convert it to a texture using this function.
+    ///
+    /// Make sure to only call this once for each image, i.e. NOT in your main GUI code.
+    ///
+    /// The given name can be useful for later debugging, and will be visible if you call [`Self::texture_ui`].
+    ///
+    /// For how to load an image, see [`ImageData`] and [`ColorImage::from_rgba_unmultiplied`].
+    /// ```
+    /// struct MyImage {
+    ///     texture: Option<egui::TextureHandle>,
+    /// }
+    ///
+    /// impl MyImage {
+    ///     fn ui(&mut self, ui: &mut egui::Ui) {
+    ///         let texture: &egui::TextureHandle = self.texture.get_or_insert_with(|| {
+    ///             // Load the texture only once with a linear texture filter.
+    ///             ui.ctx().load_filtered_texture("my-image", egui::ColorImage::example(), crate::textures::TextureFilter::Nearest)
+    ///         });
+    ///
+    ///         // Show the image:
+    ///         ui.image(texture, texture.size_vec2());
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// See also [`crate::ImageData`], [`crate::Ui::image`] and [`crate::ImageButton`].
+    pub fn load_filtered_texture(
+        &self,
+        name: impl Into<String>,
+        image: impl Into<ImageData>,
+        filter: TextureFilter,
+    ) -> TextureHandle {
+        let name = name.into();
+        let image = image.into();
+        let max_texture_side = self.input().max_texture_side;
+        crate::egui_assert!(
+            image.width() <= max_texture_side && image.height() <= max_texture_side,
+            "Texture {:?} has size {}x{}, but the maximum texture side is {}",
+            name,
+            image.width(),
+            image.height(),
+            max_texture_side
+        );
+        let tex_mngr = self.tex_manager();
+        let tex_id = tex_mngr.write().alloc(name, image, filter);
+        TextureHandle::new(tex_mngr, tex_id)
+    }
 
     /// Allocate a texture.
     ///
@@ -697,26 +747,13 @@ impl Context {
     /// }
     /// ```
     ///
-    /// Se also [`crate::ImageData`], [`crate::Ui::image`] and [`crate::ImageButton`].
+    /// See also [`crate::ImageData`], [`crate::Ui::image`] and [`crate::ImageButton`].
     pub fn load_texture(
         &self,
         name: impl Into<String>,
         image: impl Into<ImageData>,
     ) -> TextureHandle {
-        let name = name.into();
-        let image = image.into();
-        let max_texture_side = self.input().max_texture_side;
-        crate::egui_assert!(
-            image.width() <= max_texture_side && image.height() <= max_texture_side,
-            "Texture {:?} has size {}x{}, but the maximum texture side is {}",
-            name,
-            image.width(),
-            image.height(),
-            max_texture_side
-        );
-        let tex_mngr = self.tex_manager();
-        let tex_id = tex_mngr.write().alloc(name, image);
-        TextureHandle::new(tex_mngr, tex_id)
+        self.load_filtered_texture(name, image, TextureFilter::default())
     }
 
     /// Low-level texture manager.

@@ -4,7 +4,7 @@ use std::{collections::HashMap, rc::Rc};
 
 use egui::{
     emath::Rect,
-    epaint::{Color32, Mesh, Primitive, Vertex},
+    epaint::{textures::TextureFilter, Color32, Mesh, Primitive, Vertex},
 };
 use glow::HasContext as _;
 use memoffset::offset_of;
@@ -39,8 +39,6 @@ pub struct Painter {
     is_embedded: bool,
     vao: crate::vao::VertexArrayObject,
     srgb_support: bool,
-    /// The filter used for subsequent textures.
-    texture_filter: TextureFilter,
     post_process: Option<PostProcess>,
     vbo: glow::Buffer,
     element_array_buffer: glow::Buffer,
@@ -57,20 +55,12 @@ pub struct Painter {
     destroyed: bool,
 }
 
-#[derive(Copy, Clone)]
-pub enum TextureFilter {
-    Linear,
-    Nearest,
+pub(crate) trait ToGlowCode {
+    fn glow_code(&self) -> u32;
 }
 
-impl Default for TextureFilter {
-    fn default() -> Self {
-        TextureFilter::Linear
-    }
-}
-
-impl TextureFilter {
-    pub(crate) fn glow_code(&self) -> u32 {
+impl ToGlowCode for TextureFilter {
+    fn glow_code(&self) -> u32 {
         match self {
             TextureFilter::Linear => glow::LINEAR,
             TextureFilter::Nearest => glow::NEAREST,
@@ -217,7 +207,7 @@ impl Painter {
                 is_embedded: matches!(shader_version, ShaderVersion::Es100 | ShaderVersion::Es300),
                 vao,
                 srgb_support,
-                texture_filter: Default::default(),
+                //texture_filter: Default::default(),
                 post_process,
                 vbo,
                 element_array_buffer,
@@ -454,9 +444,9 @@ impl Painter {
 
     // Set the filter to be used for any subsequent textures loaded via
     // [`Self::set_texture`].
-    pub fn set_texture_filter(&mut self, texture_filter: TextureFilter) {
-        self.texture_filter = texture_filter;
-    }
+    //pub fn set_texture_filter(&mut self, texture_filter: TextureFilter) {
+    //    self.texture_filter = texture_filter;
+    //}
 
     // ------------------------------------------------------------------------
 
@@ -483,7 +473,7 @@ impl Painter {
 
                 let data: &[u8] = bytemuck::cast_slice(image.pixels.as_ref());
 
-                self.upload_texture_srgb(delta.pos, image.size, data);
+                self.upload_texture_srgb(delta.filter, delta.pos, image.size, data);
             }
             egui::ImageData::Font(image) => {
                 assert_eq!(
@@ -502,12 +492,18 @@ impl Painter {
                     .flat_map(|a| a.to_array())
                     .collect();
 
-                self.upload_texture_srgb(delta.pos, image.size, &data);
+                self.upload_texture_srgb(delta.filter, delta.pos, image.size, &data);
             }
         };
     }
 
-    fn upload_texture_srgb(&mut self, pos: Option<[usize; 2]>, [w, h]: [usize; 2], data: &[u8]) {
+    fn upload_texture_srgb(
+        &mut self,
+        filter: TextureFilter,
+        pos: Option<[usize; 2]>,
+        [w, h]: [usize; 2],
+        data: &[u8],
+    ) {
         assert_eq!(data.len(), w * h * 4);
         assert!(
             w >= 1 && h >= 1,
@@ -527,12 +523,12 @@ impl Painter {
             self.gl.tex_parameter_i32(
                 glow::TEXTURE_2D,
                 glow::TEXTURE_MAG_FILTER,
-                self.texture_filter.glow_code() as i32,
+                filter.glow_code() as i32,
             );
             self.gl.tex_parameter_i32(
                 glow::TEXTURE_2D,
                 glow::TEXTURE_MIN_FILTER,
-                self.texture_filter.glow_code() as i32,
+                filter.glow_code() as i32,
             );
 
             self.gl.tex_parameter_i32(
