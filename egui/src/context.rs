@@ -687,7 +687,7 @@ impl Context {
     ///     fn ui(&mut self, ui: &mut egui::Ui) {
     ///         let texture: &egui::TextureHandle = self.texture.get_or_insert_with(|| {
     ///             // Load the texture only once with a linear texture filter.
-    ///             ui.ctx().load_filtered_texture("my-image", egui::ColorImage::example(), crate::textures::TextureFilter::Nearest)
+    ///             ui.ctx().load_filtered_texture("my-image", egui::ColorImage::example(), epaint::textures::TextureFilter::Nearest)
     ///         });
     ///
     ///         // Show the image:

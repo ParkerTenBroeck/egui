@@ -320,7 +320,9 @@ impl ColorWidgets {
 #[derive(PartialEq)]
 struct ImageDemos {
     linear: Option<TextureHandle>,
+    linear_clicked: bool,
     nearest: Option<TextureHandle>,
+    nearest_clicked: bool,
 }
 
 impl Default for ImageDemos {
@@ -328,6 +330,8 @@ impl Default for ImageDemos {
         Self {
             linear: Default::default(),
             nearest: Default::default(),
+            linear_clicked: false,
+            nearest_clicked: false,
         }
     }
 }
@@ -369,11 +373,45 @@ impl ImageDemos {
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
                 ui.label("Linear");
-                ui.image(linear.id(), Vec2::new(50.0, 50.0));
+                let response = ui.image(linear.id(), Vec2::new(50.0, 50.0));
+                if ui
+                    .interact(response.rect, response.id, Sense::click())
+                    .clicked()
+                {
+                    self.linear_clicked = !self.linear_clicked;
+                    linear.set_partial(
+                        [2, 2],
+                        ColorImage::new(
+                            [2, 2],
+                            if self.linear_clicked {
+                                Color32::RED
+                            } else {
+                                Color32::YELLOW
+                            },
+                        ),
+                    );
+                }
             });
             ui.vertical(|ui| {
                 ui.label("Nearest");
-                ui.image(nearest.id(), Vec2::new(50.0, 50.0));
+                let response = ui.image(nearest.id(), Vec2::new(50.0, 50.0));
+                if ui
+                    .interact(response.rect, response.id, Sense::click())
+                    .clicked()
+                {
+                    self.nearest_clicked = !self.nearest_clicked;
+                    nearest.set_partial(
+                        [2, 2],
+                        ColorImage::new(
+                            [2, 2],
+                            if self.nearest_clicked {
+                                Color32::RED
+                            } else {
+                                Color32::YELLOW
+                            },
+                        ),
+                    );
+                }
             });
         });
     }
