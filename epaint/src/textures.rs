@@ -123,9 +123,6 @@ pub struct TextureMeta {
     /// A human-readable name useful for debugging.
     pub name: String,
 
-    /// The filter used on the texture
-    pub filter: TextureFilter,
-
     /// width x height
     pub size: [usize; 2],
 
@@ -166,21 +163,6 @@ impl TextureMeta {
     /// width x height x [`Self::bytes_per_pixel`].
     pub fn bytes_used(&self) -> usize {
         self.size[0] * self.size[1] * self.bytes_per_pixel
-    }
-}
-
-// ----------------------------------------------------------------------------
-
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-
-pub enum TextureFilter {
-    Linear,
-    Nearest,
-}
-impl Default for TextureFilter {
-    fn default() -> Self {
-        TextureFilter::Linear
     }
 }
 
