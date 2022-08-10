@@ -1,6 +1,6 @@
 [package]
 name = "egui"
-version = "0.17.0"
+version = "0.18.1"
 authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
 description = "An easy-to-use immediate mode GUI that runs on both web and native"
 edition = "2021"
@@ -28,6 +28,11 @@ cint = ["epaint/cint"]
 # implement bytemuck on most types.
 bytemuck = ["epaint/bytemuck"]
 
+# This will automatically detect deadlocks due to double-locking on the same thread.
+# If your app freezes, you may want to enable this!
+# Only affects `epaint::mutex::RwLock` (which egui uses a lot).
+deadlock_detection = ["epaint/deadlock_detection"]
+
 # If set, egui will use `include_bytes!` to bundle some fonts.
 # If you plan on specifying your own fonts you may disable this feature.
 default_fonts = ["epaint/default_fonts"]
@@ -46,9 +51,11 @@ persistence = ["serde", "epaint/serde", "ron"]
 # implement serde on most types.
 serde = ["dep:serde", "epaint/serde"]
 
+# Ease of use hex to Color32 macro
+color-hex = ["epaint/color-hex"]
 
 [dependencies]
-epaint = { version = "0.17.0", path = "../epaint", default-features = false }
+epaint = { version = "0.18.1", path = "../epaint", default-features = false }
 
 ahash = "0.7"
 nohash-hasher = "0.2"

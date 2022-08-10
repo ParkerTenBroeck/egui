@@ -5,6 +5,8 @@
 
 #![allow(clippy::manual_range_contains)]
 
+use std::os::raw::c_void;
+
 pub use egui;
 pub use winit;
 
@@ -12,10 +14,16 @@ pub mod clipboard;
 pub mod screen_reader;
 mod window_settings;
 
-#[cfg(feature = "epi")]
-pub mod epi;
-
 pub use window_settings::WindowSettings;
+
+#[cfg(any(
+    target_os = "linux",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "netbsd",
+    target_os = "openbsd"
+))]
+use winit::platform::unix::WindowExtUnix;
 
 pub fn native_pixels_per_point(window: &winit::window::Window) -> f32 {
     window.scale_factor() as f32
@@ -56,13 +64,21 @@ impl State {
     /// * `max_texture_side`: e.g. `GL_MAX_TEXTURE_SIZE`
     /// * the native `pixels_per_point` (dpi scaling).
     pub fn new(max_texture_side: usize, window: &winit::window::Window) -> Self {
-        Self::from_pixels_per_point(max_texture_side, native_pixels_per_point(window))
+        Self::from_pixels_per_point(
+            max_texture_side,
+            native_pixels_per_point(window),
+            get_wayland_display(window),
+        )
     }
 
     /// Initialize with:
     /// * `max_texture_side`: e.g. `GL_MAX_TEXTURE_SIZE`
     /// * the given `pixels_per_point` (dpi scaling).
-    pub fn from_pixels_per_point(max_texture_side: usize, pixels_per_point: f32) -> Self {
+    pub fn from_pixels_per_point(
+        max_texture_side: usize,
+        pixels_per_point: f32,
+        wayland_display: Option<*mut c_void>,
+    ) -> Self {
         Self {
             start_time: instant::Instant::now(),
             egui_input: egui::RawInput {
@@ -75,7 +91,7 @@ impl State {
             current_cursor_icon: egui::CursorIcon::Default,
             current_pixels_per_point: pixels_per_point,
 
-            clipboard: Default::default(),
+            clipboard: clipboard::Clipboard::new(wayland_display),
             screen_reader: screen_reader::ScreenReader::default(),
 
             simulate_touch_screen: false,
@@ -454,7 +470,7 @@ impl State {
             open_url,
             copied_text,
             events: _,                    // handled above
-            mutable_text_under_cursor: _, // only used in egui_web
+            mutable_text_under_cursor: _, // only used in eframe web
             text_cursor_pos,
         } = platform_output;
 
@@ -545,6 +561,8 @@ fn translate_mouse_button(button: winit::event::MouseButton) -> Option<egui::Poi
         winit::event::MouseButton::Left => Some(egui::PointerButton::Primary),
         winit::event::MouseButton::Right => Some(egui::PointerButton::Secondary),
         winit::event::MouseButton::Middle => Some(egui::PointerButton::Middle),
+        winit::event::MouseButton::Other(1) => Some(egui::PointerButton::Extra1),
+        winit::event::MouseButton::Other(2) => Some(egui::PointerButton::Extra2),
         winit::event::MouseButton::Other(_) => None,
     }
 }
@@ -635,10 +653,23 @@ fn translate_cursor(cursor_icon: egui::CursorIcon) -> Option<winit::window::Curs
         egui::CursorIcon::NotAllowed => Some(winit::window::CursorIcon::NotAllowed),
         egui::CursorIcon::PointingHand => Some(winit::window::CursorIcon::Hand),
         egui::CursorIcon::Progress => Some(winit::window::CursorIcon::Progress),
+
         egui::CursorIcon::ResizeHorizontal => Some(winit::window::CursorIcon::EwResize),
         egui::CursorIcon::ResizeNeSw => Some(winit::window::CursorIcon::NeswResize),
         egui::CursorIcon::ResizeNwSe => Some(winit::window::CursorIcon::NwseResize),
         egui::CursorIcon::ResizeVertical => Some(winit::window::CursorIcon::NsResize),
+
+        egui::CursorIcon::ResizeEast => Some(winit::window::CursorIcon::EResize),
+        egui::CursorIcon::ResizeSouthEast => Some(winit::window::CursorIcon::SeResize),
+        egui::CursorIcon::ResizeSouth => Some(winit::window::CursorIcon::SResize),
+        egui::CursorIcon::ResizeSouthWest => Some(winit::window::CursorIcon::SwResize),
+        egui::CursorIcon::ResizeWest => Some(winit::window::CursorIcon::WResize),
+        egui::CursorIcon::ResizeNorthWest => Some(winit::window::CursorIcon::NwResize),
+        egui::CursorIcon::ResizeNorth => Some(winit::window::CursorIcon::NResize),
+        egui::CursorIcon::ResizeNorthEast => Some(winit::window::CursorIcon::NeResize),
+        egui::CursorIcon::ResizeColumn => Some(winit::window::CursorIcon::ColResize),
+        egui::CursorIcon::ResizeRow => Some(winit::window::CursorIcon::RowResize),
+
         egui::CursorIcon::Text => Some(winit::window::CursorIcon::Text),
         egui::CursorIcon::VerticalText => Some(winit::window::CursorIcon::VerticalText),
         egui::CursorIcon::Wait => Some(winit::window::CursorIcon::Wait),
@@ -647,24 +678,43 @@ fn translate_cursor(cursor_icon: egui::CursorIcon) -> Option<winit::window::Curs
     }
 }
 
+/// Returns a Wayland display handle if the target is running Wayland
+fn get_wayland_display(_window: &winit::window::Window) -> Option<*mut c_void> {
+    #[cfg(any(
+        target_os = "linux",
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    {
+        return _window.wayland_display();
+    }
+
+    #[allow(unreachable_code)]
+    None
+}
+
 // ---------------------------------------------------------------------------
 
 /// Profiling macro for feature "puffin"
-#[doc(hidden)]
-#[macro_export]
+#[allow(unused_macros)]
 macro_rules! profile_function {
     ($($arg: tt)*) => {
         #[cfg(feature = "puffin")]
         puffin::profile_function!($($arg)*);
     };
 }
+#[allow(unused_imports)]
+pub(crate) use profile_function;
 
 /// Profiling macro for feature "puffin"
-#[doc(hidden)]
-#[macro_export]
+#[allow(unused_macros)]
 macro_rules! profile_scope {
     ($($arg: tt)*) => {
         #[cfg(feature = "puffin")]
         puffin::profile_scope!($($arg)*);
     };
 }
+#[allow(unused_imports)]
+pub(crate) use profile_scope;

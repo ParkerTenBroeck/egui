@@ -1,7 +1,7 @@
 pub use egui_winit;
 use egui_winit::winit;
 
-/// Use [`egui`] from a [`glow`] app.
+/// Use [`egui`] from a [`glow`] app based on [`winit`].
 pub struct EguiGlow {
     pub egui_ctx: egui::Context,
     pub egui_winit: egui_winit::State,
@@ -12,7 +12,7 @@ pub struct EguiGlow {
 }
 
 impl EguiGlow {
-    pub fn new(window: &winit::window::Window, gl: std::rc::Rc<glow::Context>) -> Self {
+    pub fn new(window: &winit::window::Window, gl: std::sync::Arc<glow::Context>) -> Self {
         let painter = crate::Painter::new(gl, None, "")
             .map_err(|error| {
                 tracing::error!("error occurred in initializing painter:\n{}", error);

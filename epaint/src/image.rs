@@ -271,7 +271,9 @@ pub struct ImageDelta {
     ///
     /// If [`Self::pos`] is `Some`, this describes a patch of the whole image starting at [`Self::pos`].
     pub image: ImageData,
+
     pub filter: TextureFilter,
+
     /// If `None`, set the whole texture to [`Self::image`].
     ///
     /// If `Some(pos)`, update a sub-region of an already allocated texture with the patch in [`Self::image`].

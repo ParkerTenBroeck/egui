@@ -1,7 +1,6 @@
 use crate::*;
 
 #[derive(Clone, Debug, Default, PartialEq)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub(crate) struct State {
     col_widths: Vec<f32>,
     row_heights: Vec<f32>,
@@ -9,11 +8,14 @@ pub(crate) struct State {
 
 impl State {
     pub fn load(ctx: &Context, id: Id) -> Option<Self> {
-        ctx.data().get_persisted(id)
+        ctx.data().get_temp(id)
     }
 
     pub fn store(self, ctx: &Context, id: Id) {
-        ctx.data().insert_persisted(id, self);
+        // We don't persist Grids, because
+        // A) there are potentially a lot of them, using up a lot of space (and therefore serialization time)
+        // B) if the code changes, the grid _should_ change, and not remember old sizes
+        ctx.data().insert_temp(id, self);
     }
 
     fn set_min_col_width(&mut self, col: usize, width: f32) {
@@ -72,7 +74,7 @@ impl GridLayout {
     pub(crate) fn new(ui: &Ui, id: Id) -> Self {
         let prev_state = State::load(ui.ctx(), id).unwrap_or_default();
 
-        // TODO: respect current layout
+        // TODO(emilk): respect current layout
 
         let initial_available = ui.placer().max_rect().intersect(ui.cursor());
         crate::egui_assert!(
@@ -124,7 +126,7 @@ impl GridLayout {
         let width = if is_last_column {
             (self.initial_available.right() - region.cursor.left()).at_most(self.max_cell_size.x)
         } else if self.max_cell_size.x.is_finite() {
-            // TODO: should probably heed `prev_state` here too
+            // TODO(emilk): should probably heed `prev_state` here too
             self.max_cell_size.x
         } else {
             // If we want to allow width-filling widgets like [`Separator`] in one of the first cells
@@ -157,7 +159,7 @@ impl GridLayout {
 
     #[allow(clippy::unused_self)]
     pub(crate) fn align_size_within_rect(&self, size: Vec2, frame: Rect) -> Rect {
-        // TODO: allow this alignment to be customized
+        // TODO(emilk): allow this alignment to be customized
         Align2::LEFT_CENTER.align_size_within_rect(size, frame)
     }
 

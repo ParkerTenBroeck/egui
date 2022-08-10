@@ -1,6 +1,6 @@
 [package]
 name = "epaint"
-version = "0.17.0"
+version = "0.18.1"
 authors = ["Emil Ernerfeldt <emil.ernerfeldt@gmail.com>"]
 description = "Minimal 2D graphics library for GUI work"
 edition = "2021"
@@ -32,6 +32,11 @@ default = ["default_fonts"]
 # implement bytemuck on most types.
 bytemuck = ["dep:bytemuck", "emath/bytemuck"]
 
+# This will automatically detect deadlocks due to double-locking on the same thread.
+# If your app freezes, you may want to enable this!
+# Only affects `epaint::mutex::RwLock` (which epaint and egui uses a lot).
+deadlock_detection = ["dep:backtrace"]
+
 # If set, epaint will use `include_bytes!` to bundle some fonts.
 # If you plan on specifying your own fonts you may disable this feature.
 default_fonts = []
@@ -47,21 +52,22 @@ mint = ["emath/mint"]
 # implement serde on most types.
 serde = ["dep:serde", "ahash/serde", "emath/serde"]
 
-
 [dependencies]
-emath = { version = "0.17.0", path = "../emath" }
+emath = { version = "0.18.0", path = "../emath" }
 
 ab_glyph = "0.2.11"
+ahash = { version = "0.7", default-features = false, features = ["std"] }
 nohash-hasher = "0.2"
 
 # Optional:
-ahash = { version = "0.7", default-features = false, features = ["std"] }
 bytemuck = { version = "1.7.2", optional = true, features = ["derive"] }
-cint = { version = "^0.2.2", optional = true }
+cint = { version = "0.3.1", optional = true }
+color-hex = { version = "0.2.0", optional = true }
 serde = { version = "1", optional = true, features = ["derive", "rc"] }
 
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+backtrace = { version = "0.3", optional = true }
 parking_lot = "0.12" # Using parking_lot over std::sync::Mutex gives 50% speedups in some real-world scenarios.
 
 # web:

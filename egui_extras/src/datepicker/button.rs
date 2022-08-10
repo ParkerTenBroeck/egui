@@ -3,7 +3,7 @@ use chrono::{Date, Utc};
 use egui::{Area, Button, Frame, Key, Order, RichText, Ui, Widget};
 
 #[derive(Default, Clone)]
-#[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub(crate) struct DatePickerButtonState {
     pub picker_visible: bool,
 }
@@ -95,7 +95,7 @@ impl<'a> Widget for DatePickerButton<'a> {
             if pos.x + width_with_padding > ui.clip_rect().right() {
                 pos.x = button_response.rect.right() - width_with_padding;
             }
-            //TODO: Better positioning
+            //TODO(elwerene): Better positioning
 
             let area_response = Area::new(ui.make_persistent_id(&self.id_source))
                 .order(Order::Foreground)

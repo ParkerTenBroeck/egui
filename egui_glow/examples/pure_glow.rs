@@ -1,4 +1,4 @@
-//! Example how to use pure `egui_glow` without [`epi`].
+//! Example how to use pure `egui_glow`.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 #![allow(unsafe_code)]
@@ -8,7 +8,7 @@ fn main() {
 
     let event_loop = glutin::event_loop::EventLoop::with_user_event();
     let (gl_window, gl) = create_display(&event_loop);
-    let gl = std::rc::Rc::new(gl);
+    let gl = std::sync::Arc::new(gl);
 
     let mut egui_glow = egui_glow::EguiGlow::new(gl_window.window(), gl.clone());
 
@@ -77,7 +77,7 @@ fn main() {
 
                 egui_glow.on_event(&event);
 
-                gl_window.window().request_redraw(); // TODO: ask egui if the events warrants a repaint instead
+                gl_window.window().request_redraw(); // TODO(emilk): ask egui if the events warrants a repaint instead
             }
             glutin::event::Event::LoopDestroyed => {
                 egui_glow.destroy();

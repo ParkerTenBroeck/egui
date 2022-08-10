@@ -1,4 +1,4 @@
-//! Example how to use pure `egui_glium` without [`epi`].
+//! Example how to use `egui_glium`.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
@@ -64,7 +64,7 @@ fn main() {
 
                 egui_glium.on_event(&event);
 
-                display.gl_window().window().request_redraw(); // TODO: ask egui if the events warrants a repaint instead
+                display.gl_window().window().request_redraw(); // TODO(emilk): ask egui if the events warrants a repaint instead
             }
 
             _ => (),

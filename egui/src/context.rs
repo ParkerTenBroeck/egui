@@ -51,13 +51,15 @@ struct ContextImpl {
     /// While positive, keep requesting repaints. Decrement at the end of each frame.
     repaint_requests: u32,
     request_repaint_callbacks: Option<Box<dyn Fn() + Send + Sync>>,
+    requested_repaint_last_frame: bool,
 }
 
 impl ContextImpl {
     fn begin_frame_mut(&mut self, new_raw_input: RawInput) {
         self.memory.begin_frame(&self.input, &new_raw_input);
 
-        self.input = std::mem::take(&mut self.input).begin_frame(new_raw_input);
+        self.input = std::mem::take(&mut self.input)
+            .begin_frame(new_raw_input, self.requested_repaint_last_frame);
 
         if let Some(new_pixels_per_point) = self.memory.new_pixels_per_point.take() {
             self.input.pixels_per_point = new_pixels_per_point;
@@ -328,6 +330,7 @@ impl Context {
             hovered,
             clicked: Default::default(),
             double_clicked: Default::default(),
+            triple_clicked: Default::default(),
             dragged: false,
             drag_released: false,
             is_pointer_button_down_on: false,
@@ -375,7 +378,7 @@ impl Context {
             for pointer_event in &input.pointer.pointer_events {
                 match pointer_event {
                     PointerEvent::Moved(_) => {}
-                    PointerEvent::Pressed(_) => {
+                    PointerEvent::Pressed { .. } => {
                         if hovered {
                             if sense.click && memory.interaction.click_id.is_none() {
                                 // potential start of a click
@@ -411,6 +414,8 @@ impl Context {
                                 response.clicked[click.button as usize] = clicked;
                                 response.double_clicked[click.button as usize] =
                                     clicked && click.is_double();
+                                response.triple_clicked[click.button as usize] =
+                                    clicked && click.is_triple();
                             }
                         }
                     }
@@ -637,7 +642,7 @@ impl Context {
     /// Will become active at the start of the next frame.
     ///
     /// Note that this may be overwritten by input from the integration via [`RawInput::pixels_per_point`].
-    /// For instance, when using `egui_web` the browsers native zoom level will always be used.
+    /// For instance, when using `eframe` on web, the browsers native zoom level will always be used.
     pub fn set_pixels_per_point(&self, pixels_per_point: f32) {
         if pixels_per_point != self.pixels_per_point() {
             self.request_repaint();
@@ -687,7 +692,11 @@ impl Context {
     ///     fn ui(&mut self, ui: &mut egui::Ui) {
     ///         let texture: &egui::TextureHandle = self.texture.get_or_insert_with(|| {
     ///             // Load the texture only once with a linear texture filter.
-    ///             ui.ctx().load_filtered_texture("my-image", egui::ColorImage::example(), epaint::textures::TextureFilter::Nearest)
+    ///             ui.ctx().load_filtered_texture(
+    ///                     "my-image",
+    ///                     egui::ColorImage::example(),
+    ///                     epaint::textures::TextureFilter::Nearest
+    ///                )
     ///         });
     ///
     ///         // Show the image:
@@ -837,6 +846,7 @@ impl Context {
         } else {
             false
         };
+        self.write().requested_repaint_last_frame = needs_repaint;
 
         let shapes = self.drain_paint_lists();
 
@@ -864,14 +874,17 @@ impl Context {
 
         let pixels_per_point = self.pixels_per_point();
         let tessellation_options = *self.tessellation_options();
-        let font_image_size = self.fonts().font_image_size();
+        let texture_atlas = self.fonts().texture_atlas();
+        let font_tex_size = texture_atlas.lock().size();
+        let prepared_discs = texture_atlas.lock().prepared_discs();
 
         let paint_stats = PaintStats::from_shapes(&shapes);
         let clipped_primitives = tessellator::tessellate_shapes(
             pixels_per_point,
             tessellation_options,
+            font_tex_size,
+            prepared_discs,
             shapes,
-            font_image_size,
         );
         self.write().paint_stats = paint_stats.with_clipped_primitives(&clipped_primitives);
         clipped_primitives
@@ -1255,7 +1268,7 @@ impl Context {
                         continue;
                     }
                     let text = format!("{} - {:?}", layer_id.short_debug_format(), area.rect(),);
-                    // TODO: `Sense::hover_highlight()`
+                    // TODO(emilk): `Sense::hover_highlight()`
                     if ui
                         .add(Label::new(RichText::new(text).monospace()).sense(Sense::click()))
                         .hovered
@@ -1272,11 +1285,12 @@ impl Context {
         ui.horizontal(|ui| {
             ui.label(format!(
                 "{} collapsing headers",
-                self.data().count::<containers::collapsing_header::State>()
+                self.data()
+                    .count::<containers::collapsing_header::InnerState>()
             ));
             if ui.button("Reset").clicked() {
                 self.data()
-                    .remove_by_type::<containers::collapsing_header::State>();
+                    .remove_by_type::<containers::collapsing_header::InnerState>();
             }
         });
 

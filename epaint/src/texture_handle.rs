@@ -73,15 +73,12 @@ impl TextureHandle {
     }
 
     /// Assign a new image to a subregion of the whole texture.
+
     pub fn set_partial(&mut self, pos: [usize; 2], image: impl Into<ImageData>) {
         let filter = match self.tex_mngr.read().meta(self.id) {
             Some(meta) => meta.filter,
             None => TextureFilter::default(),
         };
-
-        self.tex_mngr
-            .write()
-            .set(self.id, ImageDelta::partial(pos, image.into(), filter));
     }
 
     /// width x height
