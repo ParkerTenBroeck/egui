@@ -3,6 +3,8 @@ set -eu
 script_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$script_path/.."
 
+./sh/setup_web.sh
+
 CRATE_NAME="egui_demo_app"
 FEATURES="glow,http,persistence,screen_reader"
 
@@ -14,7 +16,7 @@ export RUSTFLAGS=--cfg=web_sys_unstable_apis
 echo "Building rust…"
 BUILD=debug # debug builds are faster
 
-(cd $CRATE_NAME &&
+(cd crates/$CRATE_NAME &&
   cargo build \
     --lib \
     --target wasm32-unknown-unknown \
