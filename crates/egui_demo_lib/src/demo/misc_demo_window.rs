@@ -373,7 +373,7 @@ impl ImageDemos {
         }
 
         let linear = self.linear.get_or_insert_with(|| {
-            ui.ctx().load_filtered_texture(
+            ui.ctx().load_texture(
                 "smily_linear",
                 generate_image(),
                 epaint::textures::TextureFilter::Linear,
@@ -381,7 +381,7 @@ impl ImageDemos {
         });
 
         let nearest = self.nearest.get_or_insert_with(|| {
-            ui.ctx().load_filtered_texture(
+            ui.ctx().load_texture(
                 "smily_nearest",
                 generate_image(),
                 epaint::textures::TextureFilter::Nearest,
@@ -408,6 +408,7 @@ impl ImageDemos {
                                 Color32::YELLOW
                             },
                         ),
+                        epaint::textures::TextureFilter::Linear,
                     );
                 }
             });
@@ -429,6 +430,7 @@ impl ImageDemos {
                                 Color32::YELLOW
                             },
                         ),
+                        epaint::textures::TextureFilter::Nearest,
                     );
                 }
             });

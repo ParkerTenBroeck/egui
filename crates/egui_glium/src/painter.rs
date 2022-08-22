@@ -1,6 +1,7 @@
 #![allow(deprecated)] // legacy implement_vertex macro
 #![allow(semicolon_in_expressions_from_macros)] // glium::program! macro
 
+use ahash::AHashMap;
 use egui::epaint::{textures::TextureFilter, Primitive};
 
 use {
@@ -21,7 +22,6 @@ pub struct Painter {
     program: glium::Program,
 
     textures: AHashMap<egui::TextureId, (Rc<SrgbTexture2d>, TextureFilter)>,
-
 
     /// [`egui::TextureId::User`] index
     next_native_tex_id: u64,
@@ -146,7 +146,6 @@ impl Painter {
         let height_in_points = height_in_pixels as f32 / pixels_per_point;
 
         if let Some((texture, filter)) = self.get_texture(mesh.texture_id) {
-
             // The texture coordinates for text are so that both nearest and linear should work with the egui font texture.
             // For user textures linear sampling is more likely to be the right choice.
             let filter = match filter {

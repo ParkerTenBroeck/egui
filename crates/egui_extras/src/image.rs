@@ -130,7 +130,7 @@ impl RetainedImage {
             .get_or_insert_with(|| {
                 let image: &mut ColorImage = &mut self.image.lock();
                 let image = std::mem::take(image);
-                ctx.load_filtered_texture(&self.debug_name, image, self.filter)
+                ctx.load_texture(&self.debug_name, image, self.filter)
             })
             .id()
     }

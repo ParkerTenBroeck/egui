@@ -4,7 +4,8 @@ use std::{collections::HashMap, sync::Arc};
 
 use egui::{
     emath::Rect,
-    epaint::{textures::TextureFilter, Mesh, Primitive, Vertex, PaintCallbackInfo},
+    epaint::{textures::TextureFilter, Mesh, PaintCallbackInfo, Primitive, Vertex},
+    Color32,
 };
 use glow::HasContext as _;
 use memoffset::offset_of;
@@ -19,22 +20,6 @@ pub use glow::Context;
 
 const VERT_SRC: &str = include_str!("shader/vertex.glsl");
 const FRAG_SRC: &str = include_str!("shader/fragment.glsl");
-
-
-pub type TextureFilter = egui::TextureFilter;
-
-trait TextureFilterExt {
-    fn glow_code(&self) -> u32;
-}
-
-impl TextureFilterExt for TextureFilter {
-    fn glow_code(&self) -> u32 {
-        match self {
-            TextureFilter::Linear => glow::LINEAR,
-            TextureFilter::Nearest => glow::NEAREST,
-        }
-    }
-}
 
 /// An OpenGL painter using [`glow`].
 ///
@@ -203,7 +188,7 @@ impl Painter {
             let u_sampler = gl.get_uniform_location(program, "u_sampler").unwrap();
 
             let vbo = gl.create_buffer()?;
-            
+
             let a_pos_loc = gl.get_attrib_location(program, "a_pos").unwrap();
             let a_tc_loc = gl.get_attrib_location(program, "a_tc").unwrap();
             let a_srgba_loc = gl.get_attrib_location(program, "a_srgba").unwrap();
