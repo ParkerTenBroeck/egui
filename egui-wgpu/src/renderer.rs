@@ -419,6 +419,8 @@ impl RenderPass {
             let filter = match image_delta.filter {
                 egui::TextureFilter::Nearest => wgpu::FilterMode::Nearest,
                 egui::TextureFilter::Linear => wgpu::FilterMode::Linear,
+                egui::TextureFilter::LinearTiled => wgpu::FilterMode::Linear,
+                egui::TextureFilter::NearestTiled => wgpu::FilterMode::Nearest,
             };
             let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
                 label: None,

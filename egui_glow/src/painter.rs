@@ -63,6 +63,8 @@ impl ToGlowCode for TextureFilter {
         match self {
             TextureFilter::Linear => glow::LINEAR,
             TextureFilter::Nearest => glow::NEAREST,
+            TextureFilter::LinearTiled => glow::LINEAR,
+            TextureFilter::NearestTiled => glow::NEAREST,
         }
     }
 }
@@ -158,7 +160,7 @@ impl Painter {
             let u_sampler = gl.get_uniform_location(program, "u_sampler").unwrap();
 
             let vbo = gl.create_buffer()?;
-
+            
             let a_pos_loc = gl.get_attrib_location(program, "a_pos").unwrap();
             let a_tc_loc = gl.get_attrib_location(program, "a_tc").unwrap();
             let a_srgba_loc = gl.get_attrib_location(program, "a_srgba").unwrap();
@@ -529,16 +531,17 @@ impl Painter {
                 texture_filter.glow_code() as i32,
             );
 
-            self.gl.tex_parameter_i32(
-                glow::TEXTURE_2D,
-                glow::TEXTURE_WRAP_S,
-                glow::CLAMP_TO_EDGE as i32,
-            );
-            self.gl.tex_parameter_i32(
-                glow::TEXTURE_2D,
-                glow::TEXTURE_WRAP_T,
-                glow::CLAMP_TO_EDGE as i32,
-            );
+            let val = match texture_filter {
+                TextureFilter::Nearest => glow::CLAMP_TO_EDGE as i32,
+                TextureFilter::Linear => glow::CLAMP_TO_EDGE as i32,
+                TextureFilter::LinearTiled => glow::REPEAT as i32,
+                TextureFilter::NearestTiled => glow::REPEAT as i32,
+            };
+
+            self.gl
+                .tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_S, val);
+            self.gl
+                .tex_parameter_i32(glow::TEXTURE_2D, glow::TEXTURE_WRAP_T, val);
             check_for_gl_error!(&self.gl, "tex_parameter");
 
             let (internal_format, src_format) = if self.is_webgl_1 {

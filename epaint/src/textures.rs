@@ -150,6 +150,8 @@ pub enum TextureFilter {
     ///
     /// This is the default.
     Linear,
+    LinearTiled,
+    NearestTiled,
 }
 
 impl Default for TextureFilter {

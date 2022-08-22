@@ -151,6 +151,8 @@ impl Painter {
             let filter = match filter {
                 TextureFilter::Linear => MagnifySamplerFilter::Linear,
                 TextureFilter::Nearest => MagnifySamplerFilter::Nearest,
+                TextureFilter::LinearTiled => MagnifySamplerFilter::Linear,
+                TextureFilter::NearestTiled => MagnifySamplerFilter::Nearest,
             };
 
             let uniforms = uniform! {
