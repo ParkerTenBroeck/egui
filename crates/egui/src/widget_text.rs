@@ -267,8 +267,8 @@ impl RichText {
         } = self;
 
         let job_has_color = text_color.is_some();
-        let line_color = text_color.unwrap_or_else(|| style.visuals.text_color());
-        let text_color = text_color.unwrap_or(crate::Color32::TEMPORARY_COLOR);
+        let text_color = text_color.unwrap_or_else(|| style.visuals.text_color());
+        let line_color = text_color;
 
         let font_id = {
             let mut font_id = text_style
